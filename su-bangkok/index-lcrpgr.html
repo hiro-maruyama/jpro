@@ -1,0 +1,485 @@
+<!-- change name from index-pc1.html to index.html  when uploading to github -->
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--    <link href="./bangkok/style.css" rel="stylesheet" />  -->
+        <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css'/>      
+        <script src='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js'></script> 
+        <script src="https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js"></script>
+            
+        <title>テスト バンコク土地利用率と人口増加率の比率</title>
+    </head>
+
+<!--    <body style="margin:0">
+        <div id="map" style="height: 100vh"></div>
+        <script type="module" src="/bangkok/bangkok-2.js"></script>
+    </body>  -->
+    <body>
+        <style>
+        #map { width: 100%; height: 100vh; position:relative;}
+        
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 200px;
+            top: 30px;
+            left: 0px;
+            padding: 10px;
+            background-color: aliceblue;
+            display:block;
+            z-index:1;
+        }
+
+        .map-overlay fieldset {
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+     
+        .map-overlay box {
+        border: blue;
+        padding: 0;
+        margin: 0 0 10px;
+        }
+
+        .home-button {
+            position: absolute;
+            top: 2px;
+            left: 0px;
+            background-color: taransparent;
+            border: none;
+            padding: 2px 5px;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .home-button fieldset{
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+
+        #toggle-legend {
+            position: absolute;
+            top:  30px;
+            left: 8px;
+            background-color: white;
+            border-color:lightgray;
+            color: black;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+        } 
+
+        #toggle-legend2 {
+            position: absolute;
+            top:  0px;
+            right: 100px;
+            background-color: white;
+            border-color:lightgray;
+            color: black;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+        } 
+
+        #zoom-level{
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background-color: white;
+          border-color: black;
+          padding: 5px 10x;
+          font-size: 12px;
+ /*         border-radius: 5px;       */   
+        }
+ 
+/*        #legend  */
+        .legend{
+            position: absolute;
+            top: 3px;
+            right: 30px;
+            background: aliceblue;
+            line-height: 1.2;
+            padding: 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        .legend span {
+            display: inline-block;
+            width: 20px;
+            height: 10px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        </style>
+
+ <!--       <div id="map" style="height: 100vh"></div> -->
+        <div id="map"></div>
+            <div class="map-overlay top"> 
+              <fieldset>       
+                <label for="dummy" ></label><br /> 
+                <label for="baseLeg" >Base Layer</label><br /> 
+                <input type="checkbox" id="buildings" name="buildings" unchecked />
+                  <label for="buildings">OvertureMap</label><br />
+                <input type="checkbox" id="gistdav" name="gistdav" checked />
+                  <label for="buildings">GISTDA Vector</label><br />
+                <input type="checkbox" id="osm_layer" name="osm_layer" unchecked />
+                  <label for="osm_layer">OpenStreetMap</label><br />  
+                <label for="dummy" ></label><br />
+                <label for="themLeg" >Thematic Layer</label> <br/>         
+                <input type="checkbox" id="lcr-layer" name="lcr-layer" unchecked  />
+                  <label for="lcr-layer">Land Consumption Rate</label><br />
+                <input type="checkbox" id="pgr-layer" name="pgr-layer" unchecked  />
+                  <label for="pgr-layer">Population Growth Rate</label><br />
+                <input type="checkbox" id="lcrpgr-layer" name="lcrpgr-layer" checked />
+                  <label for="lcrpgr-Layer">LCRPGR</label><br />
+                <input type="checkbox" id="lcrpgrpl-layer" name="lcrpgrpl-layer" unchecked />
+                  <label for="lcrpgrpl-Layer">LCRPGR+</label><br />
+              </fieldset> 
+        </div>  
+        <div class="home-button">
+            <fieldset>
+                <button id="home">Home</button>
+            </fieldset>
+        </div>
+        <button id="toggle-legend">off</button> 
+        <button id="toggle-legend2">off</button>        
+        <div id="zoom-level"></div> <!-- ズームレベル表示用の要素 -->
+<!--       <script type="module" src="./bangkok/bangkok_pc-v1-ck.js"></script>
+      -->       
+         <div id="legend" class="legend"></div>
+        <script>
+
+let protocol = new pmtiles.Protocol({metadata: true});
+            maplibregl.addProtocol("pmtiles", protocol.tile);
+
+
+const map = new maplibregl.Map({
+    container: 'map',
+    center: [100.70, 13.77],
+    zoom: 9,
+    minZoom: 9,
+    maxZoom:19,
+ //   style: 'style_bkk.json', hash: true,
+    style: './style/cn_bkk3.json', hash: true,   
+}); 
+
+const layonoff1 = document.getElementById("buildings");
+const layonoff11 = document.getElementById("gistdav");
+const layonoff12 = document.getElementById("osm_layer");
+//const layonoff13 = document.getElementById("major_roads_border");
+//const layonoff14 = document.getElementById("major_roads");
+//const layonoff15 = document.getElementById("rail_border");
+//const layonoff16 = document.getElementById("rail");
+
+const layonoff2 = document.getElementById("lcr-layer");
+const layonoff3 = document.getElementById("pgr-layer");
+const layonoff4 = document.getElementById("lcrpgr-layer");
+const layonoff5 = document.getElementById("lcrpgrpl-layer");
+
+let layer_leg='lcrpgr-layer';
+let leg_title='LCRPGR';
+
+// チェックボックスの変更に応じて他のチェックボックスも操作する関数
+function updateCheckboxes(checkboxId) {
+        // すべてのチェックボックスを取得
+    const checkboxes = ['lcr-layer', 'pgr-layer','lcrpgr-layer','lcrpgrpl-layer'];
+
+    checkboxes.forEach(id => {
+        if (id !== checkboxId) {
+            const checkbox = document.getElementById(id);
+            // チェックボックスの状態を反転させる
+            checkbox.checked = document.getElementById(checkboxId).unchecked;
+        }
+    });
+}
+
+function updateCheckboxes2(checkboxId2) {
+        // すべてのチェックボックスを取得
+    const checkboxes2 = ['buildings', 'gistdav', 'osm_layer'];
+
+    checkboxes2.forEach(id => {
+        if (id !== checkboxId2) {
+            const checkbox2= document.getElementById(id);
+            // チェックボックスの状態を反転させる
+            checkbox2.checked = document.getElementById(checkboxId2).unchecked;
+        }
+    });
+}
+
+function setLayersVisibility(map, layerIds, visibility) {
+    layerIds.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+            map.setLayoutProperty(layerId, 'visibility', visibility);
+        }
+    });
+}
+
+
+// left side layer legend on/off
+document.getElementById("toggle-legend").addEventListener("click", function () {
+    var overlay = document.querySelector(".map-overlay");
+
+    // 現在の表示状態を確認し、切り替える
+    if (overlay.style.display === "none") {
+        overlay.style.display = "block";  // 表示する
+        document.getElementById("toggle-legend").innerText = "off"; // ボタンの文字を変更
+    } else {
+        overlay.style.display = "none";  // 非表示にする
+        document.getElementById("toggle-legend").innerText = "on"; // ボタンの文字を変更
+    }
+}); 
+
+// right side legend display on/off
+
+var rlegend = document.querySelector(".legend");
+
+document.getElementById("toggle-legend2").addEventListener("click", function () {
+//    var rlegend = document.querySelector(".legend");
+
+    // thematic layer のどれかがオンであれば、現在の表示状態を確認し、切り替える
+    if (layonoff2.checked == true || layonoff3.checked == true || layonoff4.checked == true || layonoff5.checked == true) {
+        
+      if (rlegend.style.display === "none") {
+        rlegend.style.display = "block";  // 表示する
+        document.getElementById("toggle-legend2").innerText = "off"; // ボタンの文字を変更
+      } else {
+        rlegend.style.display = "none";  // 非表示にする
+        document.getElementById("toggle-legend2").innerText = "on"; // ボタンの文字を変更
+      }
+    }
+}); 
+
+
+const gistdaLayers = ['background', 'ocean','area_plant','area_rock','area_sand','area_ice',
+                      'area_concrete','hillshade','admin_national','admin_subnational',
+                      'water_ditch','water_canal','water_area','road_construction','road_bike',
+                      'road_walkway_border','road_walkway','road_polygon','road_steps',
+                      'road_local_border','road_local','road_tertiary_border','road_tertiary',
+                      'road_secondaryM_border','road_secondaryM','road_secondary_border',
+                      'road_secondary','road_primary_border','road_primary','building',
+                      'rail_light_border','rail_light','rail_heavy_border','rail_heavy',
+                      'motorway_border','motorway','label_building','label_natural',
+                      'label_area_0','label_area_1','label_water','label_waterway','label_rail',
+                      'label_road_name_0','label_load_name_1','label_road_name_2','label_route',
+                      'label_admin'];//,'sphere_streets'];
+    
+
+layonoff1.addEventListener('click', () => {
+    if (layonoff1.checked == true) {
+        map.setLayoutProperty("buildings", "visibility", "visible");
+        map.setLayoutProperty("minor_roads_border", "visibility", "visible");
+        map.setLayoutProperty("minor_roads", "visibility", "visible");
+        map.setLayoutProperty("major_roads_border", "visibility", "visible");
+        map.setLayoutProperty("major_roads", "visibility", "visible");
+        map.setLayoutProperty("rail_border", "visibility", "visible");
+        map.setLayoutProperty("rail", "visibility", "visible");
+        updateCheckboxes2('buildings');
+        setLayersVisibility(map, gistdaLayers, 'none');
+        map.setLayoutProperty("osm_layer","visibility","none");
+
+
+        //       alert(" check box of chenged to on");
+    } else {
+        map.setLayoutProperty("buildings", "visibility", "none");
+        map.setLayoutProperty("minor_roads_border", "visibility", "none");
+        map.setLayoutProperty("minor_roads", "visibility", "none");
+        map.setLayoutProperty("major_roads_border", "visibility", "none");
+        map.setLayoutProperty("major_roads", "visibility", "none");
+        map.setLayoutProperty("rail_border", "visibility", "none");
+        map.setLayoutProperty("rail", "visibility", "none");
+        
+        //        alert(" check box chenged to off");    
+    }
+});
+
+layonoff11.addEventListener('click', () => {
+    if (layonoff11.checked == true) {
+ //       layonoff1.unckecked = true;
+ //       layonoff11.checked = true;
+
+        setLayersVisibility(map, gistdaLayers, 'visible');
+        map.setLayoutProperty("buildings", "visibility", "none");
+        map.setLayoutProperty("minor_roads_border", "visibility", "none");
+        map.setLayoutProperty("minor_roads", "visibility", "none");
+        map.setLayoutProperty("major_roads_border", "visibility", "none");
+        map.setLayoutProperty("major_roads", "visibility", "none");
+        map.setLayoutProperty("rail_border", "visibility", "none");
+        map.setLayoutProperty("rail", "visibility", "none");
+        map.setLayoutProperty("osm_layer","visibility","none");
+        updateCheckboxes2('gistdav');
+
+        //       alert(" check box of chenged to on");
+    } else {
+        setLayersVisibility(map, gistdaLayers, 'none');
+     
+        // make gistda data off 
+            
+    }
+});
+
+layonoff12.addEventListener('click', () => {
+    if (layonoff12.checked == true) {
+        map.setLayoutProperty("osm_layer", "visibility", "visible");
+        map.setLayoutProperty("buildings", "visibility", "none");
+        map.setLayoutProperty("minor_roads_border", "visibility", "none");
+        map.setLayoutProperty("minor_roads", "visibility", "none");
+        map.setLayoutProperty("major_roads_border", "visibility", "none");
+        map.setLayoutProperty("major_roads", "visibility", "none");
+        map.setLayoutProperty("rail_border", "visibility", "none");
+        map.setLayoutProperty("rail", "visibility", "none");        
+        setLayersVisibility(map, gistdaLayers, 'none');     
+        updateCheckboxes2('osm_layer');
+          
+    } else {
+        map.setLayoutProperty("osm_layer", "visibility", "none");            
+    }
+});
+
+
+layonoff2.addEventListener('click', () => {
+    if (layonoff2.checked == true) {
+        map.setLayoutProperty("lcr-layer", "visibility", "visible");
+        map.setLayoutProperty("pgr-layer", "visibility", "none");
+        map.setLayoutProperty("lcrpgr-layer", "visibility", "none");  
+        map.setLayoutProperty("lcrpgrpl-layer", "visibility", "none");     
+//        map.setLayoutProperty("lcrpgr-layer", "visibility", "none");
+        updateCheckboxes('lcr-layer');
+        document.getElementById("toggle-legend2").innerText = "off";
+        rlegend.style.display = "block";        
+    } else {
+        // チェックボックスのチェックが外れた場合、レイヤを非表示にする
+        map.setLayoutProperty("lcr-layer", "visibility", "none");
+        document.getElementById("toggle-legend2").innerText = "on";
+        rlegend.style.display = "none";
+    }
+    updateLegendInfo();
+});
+layonoff3.addEventListener('click', () => {
+    if (layonoff3.checked == true) {
+        map.setLayoutProperty("pgr-layer", "visibility", "visible");
+        map.setLayoutProperty("lcr-layer", "visibility", "none");
+        map.setLayoutProperty("lcrpgr-layer", "visibility", "none");
+        map.setLayoutProperty("lcrpgrpl-layer", "visibility", "none");
+        updateCheckboxes('pgr-layer');
+        document.getElementById("toggle-legend2").innerText = "off";
+        rlegend.style.display = "block";
+    } else {
+            // チェックボックスのチェックが外れた場合、レイヤを非表示にする
+        map.setLayoutProperty("pgr-layer", "visibility", "none");
+        document.getElementById("toggle-legend2").innerText = "on";
+        rlegend.style.display = "none";
+    }
+    updateLegendInfo();
+});
+layonoff4.addEventListener('click', () => {
+    if (layonoff4.checked == true) {
+        map.setLayoutProperty("lcrpgr-layer", "visibility", "visible");
+        map.setLayoutProperty("lcr-layer", "visibility", "none");
+        map.setLayoutProperty("pgr-layer", "visibility", "none");
+        map.setLayoutProperty("lcrpgrpl-layer", "visibility", "none");
+        updateCheckboxes('lcrpgr-layer');
+        document.getElementById("toggle-legend2").innerText = "off";
+        rlegend.style.display = "block";
+    } else {
+        map.setLayoutProperty("lcrpgr-layer", "visibility", "none");
+        document.getElementById("toggle-legend2").innerText = "on"; 
+        rlegend.style.display = "none";  
+
+        // ボタンの文字を変更
+       
+    }
+    updateLegendInfo();
+});
+layonoff5.addEventListener('click', () => {
+    if (layonoff5.checked == true) {
+        map.setLayoutProperty("lcrpgrpl-layer", "visibility", "visible");
+        map.setLayoutProperty("lcrpgr-layer", "visibility", "none");
+        map.setLayoutProperty("lcr-layer", "visibility", "none");
+        map.setLayoutProperty("pgr-layer", "visibility", "none");
+        updateCheckboxes('lcrpgrpl-layer');
+        document.getElementById("toggle-legend2").innerText = "off";        
+        rlegend.style.display = "block";
+    } else {
+        map.setLayoutProperty("lcrpgrpl-layer", "visibility", "none");
+        document.getElementById("toggle-legend2").innerText = "on";
+        rlegend.style.display = "none";
+    }    
+    updateLegendInfo();
+});
+
+
+// legendの表示
+map.on('load', () => {
+    updateLegendInfo();
+    
+console.log(map.getSource('pmt'));
+console.log(map.getLayer('buildings'));
+
+});
+
+function updateLegendInfo(){
+if (map.getLayoutProperty("lcrpgr-layer", "visibility")=="visible") {
+        layer_leg='lcrpgr-layer';
+        leg_title='LCRPGR';
+    } else if (map.getLayoutProperty("lcrpgrpl-layer", "visibility")=="visible") {
+        layer_leg='lcrpgrpl-layer';
+        leg_title='LCRPGR+';
+    } else if (map.getLayoutProperty("lcr-layer", "visibility")=="visible") {
+        layer_leg='lcr-layer';
+        leg_title='LCR';
+    } else if (map.getLayoutProperty("pgr-layer", "visibility")=="visible") {
+        layer_leg='pgr-layer';
+        leg_title='PGR';
+    }
+//    const fillColor = map.getPaintProperty('lcrpgr-layer', 'fill-color');
+    const fillColor = map.getPaintProperty(layer_leg, 'fill-color');
+//    createLegendFromPaint(fillColor, 'LCRPGR');
+    createLegendFromPaint(fillColor, leg_title);
+     
+
+    function createLegendFromPaint(paintArray, propertyName = '') {
+    const legendContainer = document.getElementById('legend');
+    legendContainer.innerHTML = `<h4>${propertyName ? propertyName : 'Legend'}</h4>`;
+
+    if (paintArray[0] !== 'interpolate') {
+      legendContainer.innerHTML += '<div>対応していないpaint構造です</div>';
+      return;
+    }
+
+    const stops = paintArray.slice(3); // [val1, color1, val2, color2, ...]
+    const numStops = stops.length / 2;
+
+    for (let i = 0; i < numStops; i++) {
+      const val1 = stops[i * 2];
+      const color = stops[i * 2 + 1];
+
+      if (i < numStops - 1) {
+        const val2 = stops[(i + 1) * 2];
+//      const label = `${val1}〜${val2 - 1}`;
+        const label = `${val1}〜${val2}`;
+
+        legendContainer.innerHTML += `
+          <div><span style="background:${color}"></span> ${label}</div>
+        `;
+      } else {
+      // 最後のラベル
+        const label = `${val1}以上`;
+        legendContainer.innerHTML += `
+          <div><span style="background:${color}"></span> ${label}</div>
+        `;
+      }
+    }
+}
+}
+
+document.getElementById("home").addEventListener("click", function () {
+    window.location.href = "index-menu.html";
+});
+
+        </script>
+    </body> 
+</html>
