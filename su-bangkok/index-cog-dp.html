@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+  
+        <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css' />      
+        <script src='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js'></script> 
+
+        <title>クラウドcogの表示</title>
+    </head>
+    <body>
+        <style>
+            .map-overlay {
+                font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+                position: absolute;
+                width: 150px;
+                line-height:1;
+                top: 30px;
+                left: 0;
+                padding: 10px;
+                background-color: aliceblue;
+            }
+    
+            .map-overlay fieldset {
+                border: none;
+                padding: 0;
+                margin: 0 0 10px;
+            }
+
+           .home-button {
+                position: absolute;
+                top: 2px;
+                left: 0px;
+                background-color: taransparent;
+                border: none;
+                padding: 2px 5px;
+                cursor: pointer;
+                z-index: 1;
+            }
+            .home-button fieldset{
+                border: none;
+                padding: 0;
+                margin: 0 0 10px;
+            }
+
+            .url-input{
+                position:absolute;
+                top: 10px;
+                left: 200px;
+            }
+
+            .url-input input[type="text"] {
+                width: 500px;
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+    
+        </style>
+
+
+        <div id="map" style="height: 100vh"></div>
+<!--       <script type="module" src="/bangkok/bangkok-3.js"></script> -->
+        <div class="map-overlay">
+          <fieldset>
+            <label for="transparency">Set transparency</label>
+              <p>Sentinel:&nbsp;&nbsp; &nbsp;   <span id="transparencyValue">&nbsp; 5</span></p> 
+              <input type="range" id="transparency" name="transparency" 
+                 min="0" max="10" step="1" value="5" >
+          </fieldset>
+          <fieldset>
+<!--           <label for="transparency">Set transparency</label>  --> 
+              <p>bagkok-1 UAV:<span id="transparencyValue2">&nbsp; 5</span></p>
+              <input type="range" id="transparency2" name="transparency2" 
+                 min="0" max="10" step="1" value="5" />
+          </fieldset>    
+          <fieldset>
+<!--            <label for="transparency">Set transparency</label>  -->
+              <p>bangkok-3 UAV:<span id="transparencyValue3">&nbsp; 5</span></p>
+              <input type="range" id="transparency3" name="transparency3" 
+                 min="0" max="10" step="1" value="5" />
+          </fieldset>    
+          <fieldset>
+            <input type="checkbox" id="osm-layer" name="osm" checked>
+              <label for="none">OpenStreetMap</label> 
+          </fieldset>    
+        </div>
+        <div class="home-button">
+            <fieldset>
+                <button id="home">Home</button>
+            </fieldset>
+        </div>
+        <div class="url-input">
+            <input type="text" id="url" name="url" placeholder="input url of cog file (e.g.https://-------)">
+        </div>
+       <script>
+// parameter setting
+let zopacity1=0.5;
+let zopacity2=0.5;
+let zopacity3=0.5;
+const transparencyValueSpan = document.getElementById('transparencyValue');
+const transparencyInput = document.getElementById('transparency');
+transparencyValueSpan.innerHTML =`${transparencyInput.value / 10} `;
+
+const transparencyValueSpan2 = document.getElementById('transparencyValue2');
+const transparencyInput2 = document.getElementById('transparency2');
+transparencyValueSpan2.innerHTML =`${transparencyInput2.value / 10} `;
+
+const transparencyValueSpan3 = document.getElementById('transparencyValue3');
+const transparencyInput3 = document.getElementById('transparency3');
+transparencyValueSpan3.innerHTML =`${transparencyInput3.value / 10} `;
+
+const urlInput = document.getElementById('url');
+
+const map=new maplibregl.Map({
+    container: 'map',
+        center: [100.49,13.76],
+        zoom: 10,
+        style:{
+            version: 8,
+            sources: {      
+                osm:{
+                    type: 'raster',
+                    tiles: [
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    ],
+                    tileSize: 256,
+                    maxzoom: 24,
+                    attribution: '&copy: <a href="http://www.openstreetmap.org/copyright"</a>OpenStreetMap contributors',
+                },
+                    cogsen: {
+                    type: 'raster',
+                    tiles: [
+                            'https://tiles.rdnt.io/tiles/{z}/{x}/{y}?url=https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/47/P/PR/2025/2/S2B_47PPR_20250209_0_L2A/TCI.tif'
+                    ],
+                    tileSize: 256,
+                    minzoom: 8,
+                    maxzoom: 20,
+                    attribution: '&copy; Radiant Earth / Planet'
+                }  
+
+            }, 
+                layers: [
+                    {
+                        id: 'osm-layer',
+                        source: 'osm',
+                        type: 'raster',
+                    },       
+                    {
+                        id: 'sentinel-layer',
+                        type: 'raster',
+                        source: 'cogsen',
+                        paint: {
+                         'raster-opacity': zopacity1,
+                        },                        
+                    },                                   
+                ],
+            },
+        });
+
+ map.on('load', () => {
+   map.addSource('imageSource2', {
+     type: 'raster',
+     tiles: [
+       'https://tiles.rdnt.io/tiles/{z}/{x}/{y}?url=https://oin-hotosm-temp.s3.us-east-1.amazonaws.com/650411d14a35b70001c38d14/0/650411d14a35b70001c38d15.tif',
+     ],
+     tileSize: 256,
+     minzoom: 7,
+     attribution: '&copy: <a href="https://map.openaerialmap.org/">OpenAerialMap</a>'
+   });
+
+   map.addLayer({
+     id: 'imageLayer2',
+     source: 'imageSource2',
+     type: 'raster',
+     paint: {
+        'raster-opacity': zopacity2,
+        },
+    });
+
+   map.addSource('imageSource3', {
+    type: 'raster',
+    tiles:[
+      'https://tiles.rdnt.io/tiles/{z}/{x}/{y}?url=https://oin-hotosm-temp.s3.amazonaws.com/595e56f5d32be800103d86f2/0/2ffb4d54-b9bb-4c00-b5df-c7404f77857e.tif',
+    ],
+    tileSize: 256,
+    minzoom: 7,
+  });
+
+  map.addLayer({
+    id: 'imageLayer3',
+    source: 'imageSource3',
+    type: 'raster',
+    paint: {
+        'raster-opacity': zopacity3
+        },
+  });
+ 
+ });
+
+ //map.on('load',() =>{
+
+    transparencyInput.addEventListener('change', (e) => {
+        transparencyValueSpan.innerHTML =`${transparencyInput.value / 10} `;
+        zopacity1=parseFloat(transparencyInput.value/10);
+        map.setPaintProperty('sentinel-layer','raster-opacity',zopacity1);
+        },
+    );
+
+    transparencyInput2.addEventListener('change', (e) => {
+        transparencyValueSpan2.innerHTML =`${transparencyInput2.value / 10} `;
+        zopacity2=parseFloat(transparencyInput2.value/10);
+        map.setPaintProperty('imageLayer2','raster-opacity',zopacity2);
+        },
+    );
+
+    transparencyInput3.addEventListener('change', (e) => {
+        transparencyValueSpan3.innerHTML =`${transparencyInput3.value / 10} `;
+        zopacity3=parseFloat(transparencyInput3.value/10);
+        map.setPaintProperty('imageLayer3','raster-opacity',zopacity3);
+        },
+    );
+
+
+    const layonoff1=document.getElementById("osm-layer");
+    
+    layonoff1.addEventListener('click',() => {
+        if(layonoff1.checked==true) {
+            map.setLayoutProperty("osm-layer", "visibility", "visible");
+        } else {
+            map.setLayoutProperty("osm-layer", "visibility", "none");
+    //        alert(" check box chenged to off");    
+        }   
+    });
+
+    urlInput.addEventListener('change', () => {
+        const inputUrl=urlInput.value.trim();
+        if (!inputUrl.toLowerCase().endsWith('.tif') && !inputUrl.toLowerCase().endsWith('.tiff')) {
+            alert('拡張子が .tif のURLを入力してください');
+            return; // それ以降の処理を中断
+        }
+
+        console.log(urlInput.value);
+        const addedImage='https://tiles.rdnt.io/tiles/{z}/{x}/{y}?url='+urlInput.value;
+        console.log(addedImage);
+
+        const addLayerFunc = () => {
+            if (map.getSource('newimage')) {
+                if (map.getLayer('newimage-layer')) {
+                    map.removeLayer('newimage-layer');
+                }
+                map.removeSource('newimage');
+            }
+
+            map.addSource('newimage', {
+                type: 'raster',
+                tiles: [addedImage],
+                tileSize: 256,
+                minzoom: 0
+            });
+
+            map.addLayer({
+                id: 'newimage-layer',
+                source: 'newimage',
+                type: 'raster',
+                paint: {
+                    'raster-opacity': 1.0,
+                },
+            });
+
+            map.flyTo({
+                center:[0,0],
+                zoom: 1,
+            });
+        };
+
+        if (map.loaded()) {
+            addLayerFunc();
+        } else {
+            map.once('load', addLayerFunc);
+        }
+    });
+
+    document.getElementById("home").addEventListener("click", function () {
+    window.location.href = "index-menu-dp.html";
+    });
+
+    </script>
+    </body> 
+</html>

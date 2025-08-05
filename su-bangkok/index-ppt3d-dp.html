@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>テスト 鉄道駅・バス停までの距離 in 3D</title>
+  <meta property="og:description" content="Use extrusions to display buildings' height in 3D." />
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css' />
+  <script src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'></script>
+  <script src="https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js"></script>  
+<!--
+<style>
+      body { margin: 0; padding: 0; }
+      html, body, #map { height: 100%; }
+  </style> -->
+</head>
+<body>
+ <!---   <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; } -->
+    <style>
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 180px;
+            line-height:1;
+            top: 30px;
+            left: 0;
+            padding: 10px;
+            background-color: aliceblue;
+        }
+
+        .map-overlay fieldset {
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+
+        .home-button {
+            position: absolute;
+            top: 2px;
+            left: 0px;
+            background-color: taransparent;
+            border: none;
+            padding: 2px 5px;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .home-button fieldset{
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+
+    </style>
+
+<div id="map" style="height: 100vh"></div>>
+<!-- <div id="map"></div> -->
+<div class="map-overlay">
+    <fieldset>
+        <label for="height">Height:Nearest distance from</label><br>
+        <label><input type="radio" name="height" value="dis2" checked>raiway station</label><br>
+        <label><input type="radio" name="height" value="dissb" unchecked>raiway station + bus stop</label><br>
+        <br>
+        <label for="transparency">Set transparency</label>
+        <p id="transparencyValue"></p>
+        <input type="range" id="transparency" name="transparency" 
+               min="0" max="10" step="1" value="7" />
+    </fieldset>
+    <fieldset>
+        <input type="checkbox" id="z-railway" name="railway" checked>
+          <label for="railway">Railway</label><br /> 
+    </fieldset>    
+    <fieldset>
+        <input type="checkbox" id="z-station" name="railway" checked>
+          <label for="station">Station</label> 
+    </fieldset>    
+    <fieldset>
+        <input type="checkbox" id="z-busstop" name="busstop" unchecked>
+          <label for="busstop">Bus Stop</label> 
+    </fieldset>    
+</div>
+<div class="home-button">
+    <fieldset>
+        <button id="home">Home</button>
+    </fieldset>
+</div>
+
+    
+<script>
+// introduction of pmtiles
+let protocol = new pmtiles.Protocol({metadata:true});
+maplibregl.addProtocol("pmtiles",protocol.tile);
+
+// import maplibregl from 'maplibre-gl';
+// import 'maplibre-gl/dist/maplibre-gl.css';
+// parameter setting
+var zopacity=0.7;
+const transparencyValueSpan = document.getElementById('transparencyValue');
+const transparencyInput = document.getElementById('transparency');
+transparencyValueSpan.innerHTML =`${transparencyInput.value / 10} `;
+
+// const MAPTILER_KEY = 'get_your_own_OpIi9ZULNHzrESv6T2vL';
+const MAPTILER_KEY = 'fh40KwnIDXcNE7AwKtkT';
+const map = new maplibregl.Map({
+    style: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`,
+//     center: [-74.0066, 40.7135],     
+//     center: [140.1270,36.0478 ],
+    center:[100.54,13.74],
+    zoom: 12,//15.5,
+    pitch: 45,
+    bearing: -17.6,
+    container: 'map',
+    antialias: true
+});
+
+// The 'building' layer in the streets vector source contains building-height
+// data from OpenStreetMap.
+map.on('load', () => {
+    // Insert the layer beneath any symbol layer.
+    const layers = map.getStyle().layers;
+
+/*    map.addSource('openmaptiles', {
+        url: `https://api.maptiler.com/tiles/v3-openmaptiles/tiles.json?key=${MAPTILER_KEY}`,
+//          url: `https://api.maptiler.com/tiles/v2/tiles.json?key=${MAPTILER_KEY}`,
+       
+        type: 'vector',
+    }); */
+
+    map.addSource('popdistance', {
+//        'type':'geojson',
+        'type':'vector',
+//        'data': `${location.href.replace('index-sb.html','')}polygon1km_pop-dis-3.geojson`,
+        'url':'pmtiles://https://undpgeohub.blob.core.windows.net/userdata/830e6a3120d1f28cb03971f0936b16f7/datasets/polygon1km_pop-dis-3_20250801070636.pmtiles/polygon1km_pop-dis-3_20250801070636.pmtiles?sv=2025-07-05&ss=b&srt=o&se=2026-08-01T07%3A54%3A08Z&sp=r&sig=IX7ZsehoDPDGHUsJ8R5Zk2910LF8n7l0JQA%2BXtXgeGo%3D',
+        'attribution':"<a href='https://data.humdata.org/dataset/worldpop-population-density-for-thailand' target='_blank'>Thailand Population Density</a>",
+    });
+
+    map.addSource('railway',{
+        'type':'vector',
+//        'data':`${location.href.replace('index-sb.html','')}hotosm_tha_railways_lines.geojson`,
+        'url': 'pmtiles://https://undpgeohub.blob.core.windows.net/userdata/830e6a3120d1f28cb03971f0936b16f7/datasets/railway_20250801070636.pmtiles/railway_20250801070636.pmtiles?sv=2025-07-05&ss=b&srt=o&se=2026-08-01T08%3A22%3A41Z&sp=r&sig=Y6M1m%2BjH4FyvKCg7j32FfV2K7BQqECBYpFcQpzPeU4s%3D',
+        'attribution': "<a href='https://data.humdata.org/dataset/hotosm_tha_railways' target='_blank'>Thailand railway</a>",
+    })
+
+    map.addSource('station',{
+        'type':'vector',
+//        'data':`${location.href.replace('index-sb.html','')}hotosm_tha_railways_points.geojson`,
+        'url': 'pmtiles://https://undpgeohub.blob.core.windows.net/userdata/830e6a3120d1f28cb03971f0936b16f7/datasets/dist_rst2bsp_sl_20250801070636.pmtiles/dist_rst2bsp_sl_20250801070636.pmtiles?sv=2025-07-05&ss=b&srt=o&se=2026-08-01T08%3A21%3A41Z&sp=r&sig=sqWrQHZBAQPX4UcxhUghU1r3beVUOpSd5W1QnyDuKBc%3D',
+        'attribution': "<a href='https://data.humdata.org/dataset/hotosm_tha_railways' target='_blank'>Thailand railway</a>",
+    })  
+
+    map.addSource('busstop',{
+        'type':'vector',
+//        'data':`${location.href.replace('index-sb.html','')}hotosm_tha_railways_points.geojson`,
+        'url': 'pmtiles://https://undpgeohub.blob.core.windows.net/userdata/830e6a3120d1f28cb03971f0936b16f7/datasets/light_busstop_bangkok_metro_20250801070636.pmtiles/light_busstop_bangkok_metro_20250801070636.pmtiles?sv=2025-07-05&ss=b&srt=o&se=2026-08-01T07%3A45%3A17Z&sp=r&sig=BcsFNBmC7qFm4SiZJZZhgPV2PD4yAZewoD%2FZHbg3%2FbA%3D',
+        'attribution': "<a href='http://www.openstreetmap.org/copyright'</a>",
+    })    
+
+/*    map.addLayer(
+        {
+            'id': '3d-buildings',
+            'source': 'openmaptiles',
+            'source-layer': 'building',
+    /*        'type': 'fill-extrusion',
+            'type': 'fill'
+            'minzoom': 15,
+            'filter': ['!=', ['get', 'hide_3d'], true],
+            'paint': {
+                'fill-extrusion-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'render_height'], 0, 'lightgray', 70, 'royalblue', 250, 'red'
+                ],
+                'fill-extrusion-height': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    15,
+                    0,
+                    16,
+                    ['get', 'render_height']
+                ],
+                'fill-extrusion-base': ['case',
+                    ['>=', ['get', 'zoom'], 16],
+                    ['get', 'render_min_height'], 0
+                ]  */
+     /*       'type': 'fill',
+            'paint': {
+                'fill-color': '#F00',
+            },
+        },
+    ); */
+    map.addLayer(
+        {
+            'id': 'z-distance',
+            'source': 'popdistance',
+            'source-layer': 'polygon1km_pop-dis-3',
+ /*           'source-layer': '',
+            'type': 'fill',
+            'paint': {
+                'fill-color': '#FF0',
+            }, */
+            'type': 'fill-extrusion',
+            'paint': {
+//                'fill-extrusion-color': ['get', 'color'],
+                'fill-extrusion-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'z'],
+                0, 
+                '#ffffff',
+                100,
+                '#ffcccc',
+                1000,
+                '#ffaaaa',
+                5000,
+                '#ff8888',
+                10000,
+                '#ff6666',
+                30000,
+                '#ff0000',
+                ],
+            
+ //               'fill-extrusion-opacity': 0.7,
+                'fill-extrusion-opacity': zopacity,               
+ //               'fill-extrusion-height': ['get', 'dis2'], //consider only railway station
+               'fill-extrusion-height': ['get', 'dis2'], //consider both railway station and busstop
+            },
+
+        },
+    );
+
+    map.addLayer(
+        {
+            'id': 'z-railway',
+            'source': 'railway',
+            'source-layer': 'railway',
+            'type': 'line',           
+            'paint': {               
+            'line-color': '#555',
+            'line-width': 3,
+            },
+        },
+    );
+
+    map.addLayer(
+        {
+            'id': 'z-station',
+            'source': 'station',
+            'source-layer': 'dist_rst2bsp_sl',
+//            'type': 'fill-extrusion',
+            'type': 'circle',           
+            'paint': {               
+  //          'fill-extrusion-color': '#00f',
+  //          'fill-extrusion-height': 0,
+              'circle-color': '#00f',
+              'circle-radius':3
+ //             'circle-radius': [
+ //               'interpolate',
+ //               ['linear'],
+ //               ['zoom'],
+ //               5,2,14,6,
+ //             ]
+            },
+        },
+    );
+
+    map.addLayer(
+        {
+            'id': 'z-busstop',
+            'source': 'busstop',
+            'source-layer': 'light_busstop_bangkok_metro',
+            'type': 'circle',  
+            'layout':{ 
+                'visibility': 'none'
+            },            
+            'paint': {               
+              'circle-color': '#0f0',
+              'circle-radius':2
+            },
+        },
+    );
+
+});
+
+transparencyInput.addEventListener('change', (e) => {
+    transparencyValueSpan.innerHTML =`${transparencyInput.value / 10} `;
+    zopacity=parseFloat(transparencyInput.value/10);
+    map.setPaintProperty('z-distance','fill-extrusion-opacity',zopacity);
+    },
+);
+
+const layonoff1=document.getElementById("z-railway");
+const layonoff2=document.getElementById("z-station");
+const layonoff3=document.getElementById("z-busstop");
+
+layonoff1.addEventListener('click',() => {
+    if(layonoff1.checked==true) {
+        map.setLayoutProperty("z-railway", "visibility", "visible");
+    } else {
+        map.setLayoutProperty("z-railway", "visibility", "none");
+//        alert(" check box chenged to off");    
+    }   
+});
+
+layonoff2.addEventListener('click',() => {
+    if(layonoff2.checked==true) {
+        map.setLayoutProperty("z-station", "visibility", "visible");
+    } else {
+        map.setLayoutProperty("z-station", "visibility", "none"); 
+    }   
+});
+
+layonoff3.addEventListener('click',() => {
+    if(layonoff3.checked==true) {
+        map.setLayoutProperty("z-busstop", "visibility", "visible");
+    } else {
+        map.setLayoutProperty("z-busstop", "visibility", "none"); 
+    }   
+});
+
+document.getElementById("home").addEventListener("click", function () {
+    window.location.href = "index-menu-dp.html";
+});
+
+document.querySelector('.map-overlay fieldset').addEventListener('change', function (e) {
+  if (e.target.name === 'height') {
+    updateHeightAttribute(e.target.value);
+  }
+});
+
+function updateHeightAttribute(attributeName) {
+    map.setPaintProperty('z-distance', 'fill-extrusion-height', ['get', attributeName]);
+}
+
+</script>
+</body>
+</html>

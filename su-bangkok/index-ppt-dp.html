@@ -1,0 +1,151 @@
+<!-- change name from index-pc1.html to index.html  when uploading to github -->
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--    <link href="./bangkok/style.css" rel="stylesheet" />  -->
+        <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.css'/>      
+        <script src='https://unpkg.com/maplibre-gl@5.0.1/dist/maplibre-gl.js'></script> 
+        <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+        <script src="https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js"></script>
+            
+        <title>テスト バンコク人口変化‐駅-バス停</title>
+    </head>
+
+<!--    <body style="margin:0">
+        <div id="map" style="height: 100vh"></div>
+        <script type="module" src="/bangkok/bangkok-2.js"></script>
+    </body>  -->
+    <body>
+        <style>
+        #map { width: 100%; height: 100vh; position:relative;}
+        
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 200px;
+            top: 30px;
+            left: 0px;
+            padding: 10px;
+            background-color: aliceblue;
+            display:none;
+            z-index:1;
+        }
+
+        .map-overlay fieldset {
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+
+        .map-overlay button {
+        background-color: cornflowerblue;
+        color: white;
+        border-radius: 5px;
+        display: inline-block;
+        height: 20px;
+        border: none;
+        cursor: pointer;
+        }
+
+        .map-overlay button:hover {
+        background-color: blue;
+        box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.1);
+        -webkit-transition: background-color 500ms linear;
+        -ms-transition: background-color 500ms linear;
+        transition: background-color 500ms linear;
+        }  
+        
+        .map-overlay box {
+        border: blue;
+        padding: 0;
+        margin: 0 0 10px;
+        }
+
+       .home-button {
+            position: absolute;
+            top: 2px;
+            left: 0px;
+            background-color: taransparent;
+            border: none;
+            padding: 2px 5px;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .home-button fieldset{
+            border: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+      
+        #toggle-legend {
+            position: absolute;
+            top:  30px;
+            left: 8px;
+            background-color: white;
+            border-color:lightgray;
+            color: black;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+        } 
+
+        #zoom-level{
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background-color: white;
+          border-color: black;
+          padding: 5px 10x;
+          font-size: 12px;
+ /*         border-radius: 5px;       */   
+        }
+          
+        </style>
+
+ <!--       <div id="map" style="height: 100vh"></div> -->
+        <div id="map"></div>
+            <div class="map-overlay top"> 
+              <fieldset>
+  <!--              <label for="dummy" ></label><br />    -->           
+                <label for="dummy" ></label><br /> 
+                <label for="layer" >Layer</label><br /> 
+                <input type="checkbox" id="gistda-layer" name="gisda-layer" checked />
+                  <label for="gistda-layer">GISTDA vetor tile</label><br />
+                <input type="checkbox" id="pop-station-Layer" name="pop-station-Layer" checked  />
+                  <label for="pop-station-Layer">population density & distance to station</label><br />
+                <input type="checkbox" id="pop-change-Layer" name="pop-change-Layer" unchecked  />
+                  <label for="pop-change-Layer">population difference between 2016 and 2020</label><br />
+                <input type="checkbox" id="railway-Layer" name="railway-Layer" checked />
+                  <label for="railway-Layer">Railway</label><br />
+                <input type="checkbox" id="station2bus-Layer" name="station-Layer" checked  />
+                  <label for="station-Layer">Railway station</label>
+                <input type="checkbox" id="busstop-Layer" name="busstop-Layer" checked  />
+                  <label for="busstop-Layer">Bus stop</label>
+              </fieldset>
+              <fieldset>
+                <label for="thresh">Threshold</label><br />
+                <input type="number" id="thr-number" name="thr-number" value="1000" />
+              </fieldset>
+              <button type="button" id="calculation" name="thresh-cal">access calculation</button>
+              <fieldset>
+                <label for="result">*** Result *** <br> total population</label><br />
+                <input id="tot-pop" class="box" type="number"  />
+                <label for="result2">population within access distance threshold</label><br />
+                <input id="acc-pop" class="box" type="number" readonly="" /> <br /> 
+                <label for="result3">% of population within access distance threshold</label><br />
+                <input id="per-pop" class="box" type="number" readonly="" />                                             
+              </fieldset>
+ 
+        </div>  
+        <div class="home-button">
+            <fieldset>
+                <button id="home">Home</button>
+            </fieldset>
+        </div>
+        <button id="toggle-legend">on</button> 
+        <div id="zoom-level"></div> <!-- ズームレベル表示用の要素 -->
+       <script type="module" src="./js/ppt-dp.js"></script>
+    </body> 
+</html>
